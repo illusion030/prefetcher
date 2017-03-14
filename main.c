@@ -32,22 +32,13 @@ static long diff_in_us(struct timespec t1, struct timespec t2)
 int main()
 {
 
-    Object *o = NULL;
+    trans_interface trans_i;
 #ifdef NAIVE
-    if(init_object_naive(&o) == -1) {
-        printf("Init object naive fail\n");
-        return -1;
-    }
+    naive_init(&trans_i);
 #elif SSE
-    if(init_object_sse(&o) == -1) {
-        printf("Init object sse fail\n");
-        return -1;
-    }
+    sse_init(&trans_i);
 #elif SSE_PREFETCH
-    if(init_object_sse_prefetch(&o) == -1) {
-        printf("Init object sse prefetch fail\n");
-        return -1;
-    }
+    sse_prefetch_init(&trans_i);
 #endif
 
     /* verify the result of 4x4 matrix */
@@ -65,11 +56,8 @@ int main()
         printf("\n");
     }
     printf("\n");
-    o->src = testin;
-    o->dst = testout;
-    o->w = 4;
-    o->h = 4;
-    o->transpose(o);
+
+    (trans_i.transpose)(testin, testout, 4, 4);
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++)
             printf(" %2d", testout[y * 4 + x]);
@@ -95,14 +83,10 @@ int main()
         for (int x = 0; x < TEST_W; x++)
             *(src + y * TEST_W + x) = rand();
 
-    o->src = src;
-    o->dst = out;
-    o->w = TEST_W;
-    o->h = TEST_H;
     clock_gettime(CLOCK_REALTIME, &start);
-    o->transpose(o);
+    (trans_i.transpose)(src, out, TEST_W, TEST_H);
     clock_gettime(CLOCK_REALTIME, &end);
-    printf("%s: \t %ld us\n", o->name, diff_in_us(start, end));
+    printf("%s: \t %ld us\n", NAME, diff_in_us(start, end));
 
     free(src);
     free(out);
