@@ -26,12 +26,12 @@ run: $(EXEC)
 	./sse_prefetch
 
 cache-test: $(EXEC)
-	sudo perf stat --repeat 100 \
-	-e cache-misses,cache-references,L1-dcache-load-misses,L1-icache-load-misses,r14c,r24c ./naive
-	sudo perf stat --repeat 100 \
-	-e cache-misses,cache-references,L1-dcache-load-misses,L1-icache-load-misses,r14c,r24c ./sse
-	sudo perf stat --repeat 100 \
-	-e cache-misses,cache-references,L1-dcache-load-misses,L1-icache-load-misses,r14c,r24c ./sse_prefetch
+	perf stat --repeat 100 \
+	-e cache-misses,cache-references,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,r014c,r024c,r81d0,r01d1,r02d1,r04d1,r08d1,r10d1,r20d1 ./naive
+	perf stat --repeat 100 \
+	-e cache-misses,cache-references,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,r014c,r024c,r81d0,r01d1,r02d1,r04d1,r08d1,r10d1,r20d1 ./sse
+	perf stat --repeat 100 \
+	-e cache-misses,cache-references,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,r014c,r024c,r81d0,r01d1,r02d1,r04d1,r08d1,r10d1,r20d1 ./sse_prefetch
 
 clean:
 	$(RM) $(EXEC)

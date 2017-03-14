@@ -58,11 +58,13 @@ int main()
     printf("\n");
 
     (trans_i.transpose)(testin, testout, 4, 4);
+
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++)
             printf(" %2d", testout[y * 4 + x]);
         printf("\n");
     }
+
     assert(0 == memcmp(testout, expected, 16 * sizeof(int)) &&
            "Verification fails");
 
