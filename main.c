@@ -42,6 +42,8 @@ int main()
     sse_prefetch_init(&trans_i);
 #elif AVX
     avx_init(&trans_i);
+#elif AVX_PREFETCH
+    avx_prefetch_init(&trans_i);
 #endif
 
     /* verify the result of 4x4 matrix */

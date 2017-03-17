@@ -40,11 +40,11 @@ void sse_prefetch_transpose(int *src, int *dst, int w, int h)
 {
     for (int x = 0; x < w; x += 4) {
         for (int y = 0; y < h; y += 4) {
-#define PFDIST  8
-            _mm_prefetch(src + (y + PFDIST + 0) * w + x, _MM_HINT_T1);
-            _mm_prefetch(src + (y + PFDIST + 1) * w + x, _MM_HINT_T1);
-            _mm_prefetch(src + (y + PFDIST + 2) * w + x, _MM_HINT_T1);
-            _mm_prefetch(src + (y + PFDIST + 3) * w + x, _MM_HINT_T1);
+#define PFDIST  4
+            _mm_prefetch(src + (y + PFDIST + 0) * w + x, _MM_HINT_T2);
+            _mm_prefetch(src + (y + PFDIST + 1) * w + x, _MM_HINT_T2);
+            _mm_prefetch(src + (y + PFDIST + 2) * w + x, _MM_HINT_T2);
+            _mm_prefetch(src + (y + PFDIST + 3) * w + x, _MM_HINT_T2);
 
             __m128i I0 = _mm_loadu_si128 ((__m128i *)(src + (y + 0) * w + x));
             __m128i I1 = _mm_loadu_si128 ((__m128i *)(src + (y + 1) * w + x));
@@ -118,6 +118,68 @@ static void avx_transpose(int *src, int *dst, int w, int h)
     }
 }
 
+static void avx_prefetch_transpose(int *src, int *dst, int w, int h)
+{
+    for (int x = 0; x < w; x += 8) {
+        for (int y = 0; y < h; y += 8) {
+#define AVX_PFDIST 8
+            _mm_prefetch(src + (y + AVX_PFDIST + 0) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 1) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 2) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 3) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 4) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 5) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 6) * w + x, _MM_HINT_T1);
+            _mm_prefetch(src + (y + AVX_PFDIST + 7) * w + x, _MM_HINT_T1);
+
+            __m256i I0 = _mm256_loadu_si256((__m256i *)(src + (y + 0) * w + x));
+            __m256i I1 = _mm256_loadu_si256((__m256i *)(src + (y + 1) * w + x));
+            __m256i I2 = _mm256_loadu_si256((__m256i *)(src + (y + 2) * w + x));
+            __m256i I3 = _mm256_loadu_si256((__m256i *)(src + (y + 3) * w + x));
+            __m256i I4 = _mm256_loadu_si256((__m256i *)(src + (y + 4) * w + x));
+            __m256i I5 = _mm256_loadu_si256((__m256i *)(src + (y + 5) * w + x));
+            __m256i I6 = _mm256_loadu_si256((__m256i *)(src + (y + 6) * w + x));
+            __m256i I7 = _mm256_loadu_si256((__m256i *)(src + (y + 7) * w + x));
+
+            __m256i T0 = _mm256_unpacklo_epi32(I0, I1);
+            __m256i T1 = _mm256_unpackhi_epi32(I0, I1);
+            __m256i T2 = _mm256_unpacklo_epi32(I2, I3);
+            __m256i T3 = _mm256_unpackhi_epi32(I2, I3);
+            __m256i T4 = _mm256_unpacklo_epi32(I4, I5);
+            __m256i T5 = _mm256_unpackhi_epi32(I4, I5);
+            __m256i T6 = _mm256_unpacklo_epi32(I6, I7);
+            __m256i T7 = _mm256_unpackhi_epi32(I6, I7);
+
+            I0 = _mm256_unpacklo_epi64(T0, T2);
+            I1 = _mm256_unpackhi_epi64(T0, T2);
+            I2 = _mm256_unpacklo_epi64(T1, T3);
+            I3 = _mm256_unpackhi_epi64(T1, T3);
+            I4 = _mm256_unpacklo_epi64(T4, T6);
+            I5 = _mm256_unpackhi_epi64(T4, T6);
+            I6 = _mm256_unpacklo_epi64(T5, T7);
+            I7 = _mm256_unpackhi_epi64(T5, T7);
+
+            T0 = _mm256_permute2x128_si256(I0, I4, _MM_SHUFFLE(0, 2, 0, 0));
+            T1 = _mm256_permute2x128_si256(I1, I5, _MM_SHUFFLE(0, 2, 0, 0));
+            T2 = _mm256_permute2x128_si256(I2, I6, _MM_SHUFFLE(0, 2, 0, 0));
+            T3 = _mm256_permute2x128_si256(I3, I7, _MM_SHUFFLE(0, 2, 0, 0));
+            T4 = _mm256_permute2x128_si256(I0, I4, _MM_SHUFFLE(0, 3, 0, 1));
+            T5 = _mm256_permute2x128_si256(I1, I5, _MM_SHUFFLE(0, 3, 0, 1));
+            T6 = _mm256_permute2x128_si256(I2, I6, _MM_SHUFFLE(0, 3, 0, 1));
+            T7 = _mm256_permute2x128_si256(I3, I7, _MM_SHUFFLE(0, 3, 0, 1));
+
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 0) * h) + y), T0);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 1) * h) + y), T1);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 2) * h) + y), T2);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 3) * h) + y), T3);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 4) * h) + y), T4);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 5) * h) + y), T5);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 6) * h) + y), T6);
+            _mm256_storeu_si256((__m256i *)(dst + ((x + 7) * h) + y), T7);
+        }
+    }
+}
+
 int naive_init(trans_interface *self)
 {
     self->transpose = &naive_transpose;
@@ -139,6 +201,12 @@ int sse_prefetch_init(trans_interface *self)
 int avx_init(trans_interface *self)
 {
     self->transpose = &avx_transpose;
+    return 0;
+}
+
+int avx_prefetch_init(trans_interface *self)
+{
+    self->transpose = &avx_prefetch_transpose;
     return 0;
 }
 
